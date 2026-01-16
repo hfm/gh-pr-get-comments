@@ -10,6 +10,7 @@ use github_url::parse_github_pr_url;
     override_usage = "gh pr-get-comments [OPTIONS]\n       gh-pr-get-comments [OPTIONS]",
     about = "Fetch inline PR comments via GitHub API",
     arg_required_else_help = true,
+    group(clap::ArgGroup::new("target").required(true).args(["url", "pr", "comment"])),
     after_help = r#"Examples:
   gh pr-get-comments --repo owner/repo --pr 123
   gh pr-get-comments --repo owner/repo --comment 456789
@@ -29,10 +30,6 @@ struct Cli {
 fn main() -> anyhow::Result<()> {
     let args = Cli::parse();
 
-    let has_url = args.url.is_some();
-    let has_pr = args.pr.is_some();
-    let has_comment = args.comment.is_some();
-
     let (repo, pr_number, comment_id) = if let Some(url) = args.url.as_deref() {
         let parsed = parse_github_pr_url(url)?;
         (parsed.repo, parsed.pr_number, parsed.comment_id)
@@ -47,9 +44,6 @@ fn main() -> anyhow::Result<()> {
     };
 
     validate_repo(&repo)?;
-    if !has_url && !has_pr && !has_comment {
-        anyhow::bail!("Provide --pr or --comment");
-    }
 
     let api = GitHubApi::new()?;
     let json = api.fetch_pr_comments(&repo, pr_number, comment_id)?;
