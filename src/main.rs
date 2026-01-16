@@ -1,5 +1,6 @@
 mod github_api;
 mod github_url;
+use clap::CommandFactory;
 use clap::Parser;
 use github_api::GitHubApi;
 use github_url::parse_github_pr_url;
@@ -26,7 +27,16 @@ struct Cli {
 }
 
 fn main() -> anyhow::Result<()> {
-    let args = Cli::parse();
+    let raw_args: Vec<String> = std::env::args().collect();
+    if raw_args.len() == 1 {
+        return print_help();
+    }
+    let args = match Cli::try_parse_from(&raw_args) {
+        Ok(parsed) => parsed,
+        Err(_) => {
+            return print_help();
+        }
+    };
 
     let has_url = args.url.is_some();
     let has_pr = args.pr.is_some();
@@ -69,6 +79,13 @@ fn validate_repo(repo: &str) -> anyhow::Result<()> {
         }
         _ => anyhow::bail!("Specify --repo owner/repo (e.g. --repo owner/repo)"),
     }
+}
+
+fn print_help() -> anyhow::Result<()> {
+    let mut cmd = Cli::command();
+    cmd.print_help()?;
+    println!();
+    Ok(())
 }
 
 #[cfg(test)]
