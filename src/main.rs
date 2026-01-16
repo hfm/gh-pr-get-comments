@@ -23,7 +23,7 @@ struct Cli {
     pr: Option<u64>,
     #[arg(short, long, value_name = "ID")]
     comment: Option<u64>,
-    #[arg(short, long, value_name = "URL")]
+    #[arg(short, long, value_name = "URL", conflicts_with_all = ["pr", "comment"])]
     url: Option<String>,
 }
 
