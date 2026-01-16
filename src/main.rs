@@ -37,7 +37,9 @@ fn main() -> anyhow::Result<()> {
         (parsed.repo, parsed.pr_number, parsed.comment_id)
     } else {
         (
-            args.repo.unwrap_or_default(),
+            args.repo
+                .or_else(|| std::env::var("GH_REPO").ok())
+                .unwrap_or_default(),
             args.pr.unwrap_or(0),
             args.comment,
         )
