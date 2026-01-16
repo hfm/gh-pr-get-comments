@@ -1,6 +1,5 @@
 mod github_api;
 mod github_url;
-use clap::CommandFactory;
 use clap::Parser;
 use github_api::GitHubApi;
 use github_url::parse_github_pr_url;
@@ -10,6 +9,7 @@ use github_url::parse_github_pr_url;
     name = "gh-pr-get-comments",
     override_usage = "gh pr-get-comments [OPTIONS]\n       gh-pr-get-comments [OPTIONS]",
     about = "Fetch inline PR comments via GitHub API",
+    arg_required_else_help = true,
     after_help = r#"Examples:
   gh pr-get-comments --repo owner/repo --pr 123
   gh pr-get-comments --repo owner/repo --comment 456789
@@ -27,16 +27,7 @@ struct Cli {
 }
 
 fn main() -> anyhow::Result<()> {
-    let raw_args: Vec<String> = std::env::args().collect();
-    if raw_args.len() == 1 {
-        return print_help();
-    }
-    let args = match Cli::try_parse_from(&raw_args) {
-        Ok(parsed) => parsed,
-        Err(_) => {
-            return print_help();
-        }
-    };
+    let args = Cli::parse();
 
     let has_url = args.url.is_some();
     let has_pr = args.pr.is_some();
@@ -79,13 +70,6 @@ fn validate_repo(repo: &str) -> anyhow::Result<()> {
         }
         _ => anyhow::bail!("Specify --repo owner/repo (e.g. --repo owner/repo)"),
     }
-}
-
-fn print_help() -> anyhow::Result<()> {
-    let mut cmd = Cli::command();
-    cmd.print_help()?;
-    println!();
-    Ok(())
 }
 
 #[cfg(test)]
