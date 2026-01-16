@@ -1,4 +1,5 @@
 use reqwest::blocking::Client;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::env;
 use std::process::Command;
@@ -35,7 +36,7 @@ impl GitHubApi {
         Ok(Value::Array(comments))
     }
 
-    fn fetch_json(&self, url: &str) -> anyhow::Result<Value> {
+    fn fetch_json<T: DeserializeOwned>(&self, url: &str) -> anyhow::Result<T> {
         let resp = self
             .client
             .get(url)
@@ -51,7 +52,7 @@ impl GitHubApi {
             anyhow::bail!("GitHub API error: {} {}", status, body);
         }
 
-        resp.json::<Value>()
+        resp.json::<T>()
             .map_err(|e| anyhow::anyhow!("Failed to parse JSON response: {}", e))
     }
 
@@ -69,12 +70,10 @@ impl GitHubApi {
                 "{}/repos/{}/pulls/{}/comments?per_page={}&page={}",
                 API_BASE, repo, pr_number, PER_PAGE, page
             );
-            let json = self.fetch_json(&url)?;
-            let batch = json
-                .as_array()
-                .ok_or_else(|| anyhow::anyhow!("Unexpected GitHub API response format"))?;
-            all.extend(batch.iter().cloned());
-            if batch.len() < PER_PAGE {
+            let mut batch: Vec<Value> = self.fetch_json(&url)?;
+            let batch_len = batch.len();
+            all.append(&mut batch);
+            if batch_len < PER_PAGE {
                 break;
             }
             page += 1;
