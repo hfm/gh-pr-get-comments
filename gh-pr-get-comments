@@ -36,5 +36,5 @@ if ! gh release download --repo "$REPO" --pattern "$asset" --dir "$BIN_DIR"; the
   echo "error: release asset not found for ${os}/${arch}" 1>&2
   exit 1
 fi
-chmod +x "$RELEASE_BIN" 2>/dev/null || true
+chmod +x "$RELEASE_BIN"
 exec "$RELEASE_BIN" "$@"
