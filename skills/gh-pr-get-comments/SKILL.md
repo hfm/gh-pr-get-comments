@@ -1,6 +1,6 @@
 ---
 name: gh-pr-get-comments
-description: Fetch GitHub Pull Request inline review comments with `gh pr-get-comments`. Use when you need the comment body from a URL like `https://github.com/:owner/:repo/pull/:pr_number#discussion_rXXXX`.
+description: Fetch GitHub Pull Request inline review comments with `gh pr-get-comments`. Use when you need comment details (URL and body) from a URL like `https://github.com/:owner/:repo/pull/:pr_number#discussion_rXXXX`.
 ---
 
 # gh pr-get-comments
