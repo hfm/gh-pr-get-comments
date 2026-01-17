@@ -11,14 +11,17 @@ Use `gh pr-get-comments` to fetch inline PR review comments. Return the command 
 
 ## Usage
 
+Fetch a review comment by PR comment URL (with `#discussion_r...`).
 ```bash
 gh pr-get-comments --url https://github.com/owner/repo/pull/123#discussion_r456789
 ```
 
+Fetch all inline review comments for a PR.
 ```bash
 gh pr-get-comments --repo owner/repo --pr 123
 ```
 
+Fetch a specific review comment by ID.
 ```bash
 gh pr-get-comments --repo owner/repo --pr 123 --comment 456789
 gh pr-get-comments --repo owner/repo --comment 456789
