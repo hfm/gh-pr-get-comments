@@ -15,9 +15,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner:
-          - ubuntu-latest
-          - macos-latest
+        include:
+          - runner: ubuntu-latest
+            os: linux
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+          - runner: macos-14
+            os: darwin
+            arch: arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -36,19 +43,13 @@ jobs:
         run: |
           set -euo pipefail
           exe="gh-pr-get-comments"
-          os=$(uname -s | tr '[:upper:]' '[:lower:]')
-          arch=$(uname -m)
-          case "$arch" in
-            x86_64|amd64) arch="amd64" ;;
-            arm64|aarch64) arch="arm64" ;;
-          esac
           mkdir -p dist
-          cp "target/release/$exe" "dist/$exe-$os-$arch"
+          cp "target/release/$exe" "dist/$exe-${{ matrix.os }}-${{ matrix.arch }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: dist-${{ matrix.runner }}
+          name: dist-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/gh-pr-get-comments-*
 
   release:
