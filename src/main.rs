@@ -1,8 +1,10 @@
 mod github_api;
 mod github_url;
+use anyhow::Context;
 use clap::Parser;
 use github_api::GitHubApi;
 use github_url::parse_github_pr_url;
+use serde_json::Value;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -47,7 +49,41 @@ fn main() -> anyhow::Result<()> {
 
     let api = GitHubApi::new()?;
     let json = api.fetch_pr_comments(&repo, pr_number, comment_id)?;
-    println!("{}", json);
+    print_comments(&json)?;
+    Ok(())
+}
+
+fn print_comments(json: &Value) -> anyhow::Result<()> {
+    if let Some(comments) = json.as_array() {
+        comments
+            .iter()
+            .enumerate()
+            .try_for_each(|(index, comment)| {
+                if index > 0 {
+                    println!();
+                }
+                print_comment(comment)
+            })?;
+        return Ok(());
+    }
+
+    if json.is_object() {
+        return print_comment(json);
+    }
+
+    anyhow::bail!("Unexpected GitHub API response format")
+}
+
+fn print_comment(comment: &Value) -> anyhow::Result<()> {
+    let url = comment
+        .get("html_url")
+        .and_then(Value::as_str)
+        .context("Missing html_url in comment")?;
+    let body = comment
+        .get("body")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    println!("{url}\n\n{body}");
     Ok(())
 }
 
