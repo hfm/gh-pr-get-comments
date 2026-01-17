@@ -60,7 +60,7 @@ fn print_comments(json: &Value) -> anyhow::Result<()> {
             .enumerate()
             .try_for_each(|(index, comment)| {
                 if index > 0 {
-                    println!("");
+                    println!();
                 }
                 print_comment(comment)
             })?;
