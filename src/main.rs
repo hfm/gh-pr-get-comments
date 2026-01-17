@@ -10,7 +10,7 @@ use github_url::parse_github_pr_url;
     override_usage = "gh pr-get-comments [OPTIONS]\n       gh-pr-get-comments [OPTIONS]",
     about = "Fetch inline PR comments via GitHub API",
     arg_required_else_help = true,
-    group(clap::ArgGroup::new("target").required(true).args(["url", "pr", "comment"])),
+    group(clap::ArgGroup::new("target").required(true).multiple(true).args(["url", "pr", "comment"])),
     after_help = r#"Examples:
   gh pr-get-comments --repo owner/repo --pr 123
   gh pr-get-comments --repo owner/repo --comment 456789
