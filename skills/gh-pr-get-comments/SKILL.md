@@ -30,4 +30,4 @@ gh pr-get-comments --repo owner/repo --comment 456789
 ## Notes
 
 - Prefer `--url` when the user provides a discussion URL.
-- Use `--repo` + `--pr` or `--comment` when URL is not available.
+- Use `--repo` with either `--pr` or `--comment` when a URL is not available.
