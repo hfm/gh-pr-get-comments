@@ -1,7 +1,6 @@
 use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::env;
 use std::process::Command;
 
 const USER_AGENT: &str = "gh-pr-get-comments";
@@ -13,13 +12,19 @@ const PER_PAGE: usize = 100;
 pub struct GitHubApi {
     client: Client,
     token: String,
+    api_base: String,
 }
 
 impl GitHubApi {
-    pub fn new() -> anyhow::Result<Self> {
-        let token = fetch_token()?;
+    pub fn new(hostname: &str) -> anyhow::Result<Self> {
+        let token = fetch_token(hostname)?;
         let client = build_client()?;
-        Ok(Self { client, token })
+        let api_base = api_base_for(hostname);
+        Ok(Self {
+            client,
+            token,
+            api_base,
+        })
     }
 
     pub fn fetch_pr_comments(
@@ -57,7 +62,10 @@ impl GitHubApi {
     }
 
     fn fetch_pr_comment(&self, repo: &str, comment_id: u64) -> anyhow::Result<Value> {
-        let url = format!("{}/repos/{}/pulls/comments/{}", API_BASE, repo, comment_id);
+        let url = format!(
+            "{}/repos/{}/pulls/comments/{}",
+            self.api_base, repo, comment_id
+        );
         self.fetch_json(&url)
     }
 
@@ -68,7 +76,7 @@ impl GitHubApi {
         loop {
             let url = format!(
                 "{}/repos/{}/pulls/{}/comments?per_page={}&page={}",
-                API_BASE, repo, pr_number, PER_PAGE, page
+                self.api_base, repo, pr_number, PER_PAGE, page
             );
             let mut batch: Vec<Value> = self.fetch_json(&url)?;
             let batch_len = batch.len();
@@ -83,6 +91,14 @@ impl GitHubApi {
     }
 }
 
+fn api_base_for(hostname: &str) -> String {
+    if hostname == "github.com" {
+        API_BASE.to_string()
+    } else {
+        format!("https://{}/api/v3", hostname)
+    }
+}
+
 fn build_client() -> anyhow::Result<Client> {
     Client::builder()
         .user_agent(USER_AGENT)
@@ -90,23 +106,59 @@ fn build_client() -> anyhow::Result<Client> {
         .map_err(|e| anyhow::anyhow!("Failed to initialize HTTP client: {}", e))
 }
 
-fn fetch_token() -> anyhow::Result<String> {
-    let env_token = env::var("GH_TOKEN")
-        .or_else(|_| env::var("GITHUB_TOKEN"))
-        .unwrap_or_default()
-        .trim()
-        .to_string();
-    if !env_token.is_empty() {
-        return Ok(env_token);
+fn fetch_token(hostname: &str) -> anyhow::Result<String> {
+    if let Some(token) = token_from_env(hostname) {
+        return Ok(token);
+    }
+    if let Some(token) = token_from_gh(hostname) {
+        return Ok(token);
     }
 
+    anyhow::bail!("token for {hostname} not found.");
+}
+
+fn token_from_env(host: &str) -> Option<String> {
+    let keys = if host.eq_ignore_ascii_case("github.com") {
+        ["GH_TOKEN", "GITHUB_TOKEN"]
+    } else {
+        ["GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"]
+    };
+
+    for key in keys {
+        if let Ok(token) = std::env::var(key) {
+            return Some(token);
+        }
+    }
+
+    None
+}
+
+fn token_from_gh(host: &str) -> Option<String> {
     let output = Command::new("gh")
-        .args(["auth", "token"])
+        .args(["auth", "token", "--secure-storage", "--hostname", host])
         .output()
-        .map_err(anyhow::Error::new)?;
+        .ok()?;
     if !output.status.success() {
-        anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr));
+        return None;
+    }
+    let token = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if token.is_empty() { None } else { Some(token) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn api_base_defaults_to_github() {
+        assert_eq!(api_base_for("github.com"), API_BASE);
     }
 
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    #[test]
+    fn api_base_for_ghe() {
+        assert_eq!(
+            api_base_for("ghe.example.com"),
+            "https://ghe.example.com/api/v3"
+        );
+    }
 }

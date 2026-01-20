@@ -1,5 +1,6 @@
 #[derive(Debug)]
 pub struct ParsedUrl {
+    pub hostname: String,
     pub repo: String,
     pub pr_number: u64,
     pub comment_id: Option<u64>,
@@ -20,6 +21,7 @@ pub fn parse_github_pr_url(raw: &str) -> anyhow::Result<ParsedUrl> {
         _ => return Err(invalid()),
     };
 
+    let hostname = url.host_str().ok_or_else(invalid)?.to_string();
     let repo = format!("{}/{}", owner, name);
     let pr_number = pr_segment
         .parse::<u64>()
@@ -30,6 +32,7 @@ pub fn parse_github_pr_url(raw: &str) -> anyhow::Result<ParsedUrl> {
     };
 
     Ok(ParsedUrl {
+        hostname,
         repo,
         pr_number,
         comment_id,
@@ -55,6 +58,7 @@ mod tests {
         let parsed =
             parse_github_pr_url("https://github.com/owner/repo/pull/123#discussion_r456789")
                 .unwrap();
+        assert_eq!(parsed.hostname, "github.com");
         assert_eq!(parsed.repo, "owner/repo");
         assert_eq!(parsed.pr_number, 123);
         assert_eq!(parsed.comment_id, Some(456_789));
@@ -63,8 +67,17 @@ mod tests {
     #[test]
     fn accepts_missing_fragment() {
         let parsed = parse_github_pr_url("https://github.com/owner/repo/pull/123").unwrap();
+        assert_eq!(parsed.hostname, "github.com");
         assert_eq!(parsed.repo, "owner/repo");
         assert_eq!(parsed.pr_number, 123);
         assert_eq!(parsed.comment_id, None);
+    }
+
+    #[test]
+    fn parses_ghe_hostname() {
+        let parsed =
+            parse_github_pr_url("https://ghe.example.com/owner/repo/pull/42#discussion_r9")
+                .unwrap();
+        assert_eq!(parsed.hostname, "ghe.example.com");
     }
 }
