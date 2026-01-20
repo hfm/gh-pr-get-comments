@@ -38,6 +38,9 @@ gh pr-get-comments --repo owner/repo --comment 456789
 
 # Parse repo/pr/comment from a URL
 gh pr-get-comments --url https://github.com/owner/repo/pull/123#discussion_r456789
+
+# GitHub Enterprise Server
+gh pr-get-comments --hostname ghe.example.com --repo owner/repo --pr 123
 ```
 
 ## Options
@@ -46,3 +49,4 @@ gh pr-get-comments --url https://github.com/owner/repo/pull/123#discussion_r4567
 - `--pr`: Pull Request number.
 - `--comment`: PR review comment ID.
 - `--url`: GitHub PR comment URL.
+- `--hostname`: GitHub hostname (for GitHub Enterprise Server). Defaults to github.com.

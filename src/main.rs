@@ -19,6 +19,8 @@ use serde_json::Value;
   gh pr-get-comments --url https://github.com/owner/repo/pull/123#discussion_r456789"#
 )]
 struct Cli {
+    #[arg(long, value_name = "HOST", default_value = "github.com")]
+    hostname: String,
     #[arg(short, long, value_name = "OWNER/REPO")]
     repo: Option<String>,
     #[arg(short, long, value_name = "NUMBER")]
@@ -32,11 +34,17 @@ struct Cli {
 fn main() -> anyhow::Result<()> {
     let args = Cli::parse();
 
-    let (repo, pr_number, comment_id) = if let Some(url) = args.url.as_deref() {
+    let (hostname, repo, pr_number, comment_id) = if let Some(url) = args.url.as_deref() {
         let parsed = parse_github_pr_url(url)?;
-        (parsed.repo, parsed.pr_number, parsed.comment_id)
+        (
+            parsed.hostname,
+            parsed.repo,
+            parsed.pr_number,
+            parsed.comment_id,
+        )
     } else {
         (
+            args.hostname,
             args.repo
                 .or_else(|| std::env::var("GH_REPO").ok())
                 .unwrap_or_default(),
@@ -47,7 +55,8 @@ fn main() -> anyhow::Result<()> {
 
     validate_repo(&repo)?;
 
-    let api = GitHubApi::new()?;
+    let hostname = normalize_hostname(&hostname)?;
+    let api = GitHubApi::new(hostname.as_str())?;
     let json = api.fetch_pr_comments(&repo, pr_number, comment_id)?;
     print_comments(&json)?;
     Ok(())
@@ -102,6 +111,21 @@ fn validate_repo(repo: &str) -> anyhow::Result<()> {
     }
 }
 
+fn normalize_hostname(raw: &str) -> anyhow::Result<String> {
+    if let Ok(url) = url::Url::parse(raw) {
+        if let Some(host) = url.host_str() {
+            return Ok(host.to_ascii_lowercase());
+        }
+        anyhow::bail!("Invalid --hostname: {}", raw);
+    }
+
+    let host = raw.split(['/', '?', '#']).next().unwrap_or(raw);
+    if host.is_empty() {
+        anyhow::bail!("Invalid --hostname: {}", raw);
+    }
+    Ok(host.to_ascii_lowercase())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,5 +138,18 @@ mod tests {
         assert!(validate_repo("owner/").is_err());
         assert!(validate_repo("/repo").is_err());
         assert!(validate_repo("").is_err());
+    }
+
+    #[test]
+    fn normalizes_hostname() {
+        assert_eq!(normalize_hostname("github.com").unwrap(), "github.com");
+        assert_eq!(
+            normalize_hostname("https://ghe.example.com/").unwrap(),
+            "ghe.example.com"
+        );
+        assert_eq!(
+            normalize_hostname("ghe.example.com/api/v3").unwrap(),
+            "ghe.example.com"
+        );
     }
 }
