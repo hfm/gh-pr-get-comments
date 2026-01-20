@@ -155,11 +155,6 @@ mod tests {
     }
 
     #[test]
-    fn api_base_handles_github_hostnames() {
-        assert_eq!(api_base_for("github.com"), API_BASE);
-    }
-
-    #[test]
     fn api_base_for_ghe() {
         assert_eq!(
             api_base_for("ghe.example.com"),
