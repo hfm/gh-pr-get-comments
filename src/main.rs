@@ -10,6 +10,7 @@ use serde_json::Value;
 #[command(
     name = "gh-pr-get-comments",
     override_usage = "gh pr-get-comments [OPTIONS]\n       gh-pr-get-comments [OPTIONS]",
+    version,
     about = "Fetch inline PR comments via GitHub API",
     arg_required_else_help = true,
     group(clap::ArgGroup::new("target").required(true).multiple(true).args(["url", "pr", "comment"])),
