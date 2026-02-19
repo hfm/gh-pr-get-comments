@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Comment Fetcher"
+  short_description: "Fetch GitHub PR inline review comments by URL or IDs"
+  default_prompt: "Use $gh-pr-get-comments to fetch inline PR review comments from a discussion URL or repo/pr/comment IDs."
