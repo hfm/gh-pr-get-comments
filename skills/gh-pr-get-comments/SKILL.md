@@ -21,6 +21,11 @@ Fetch all inline review comments for a PR.
 gh pr-get-comments --repo owner/repo --pr 123
 ```
 
+Fetch all inline review comments for a PR on GitHub Enterprise Server.
+```bash
+gh pr-get-comments --hostname ghe.example.com --repo owner/repo --pr 123
+```
+
 Fetch a specific review comment by ID.
 ```bash
 gh pr-get-comments --repo owner/repo --pr 123 --comment 456789
@@ -31,3 +36,4 @@ gh pr-get-comments --repo owner/repo --comment 456789
 
 - Prefer `--url` when the user provides a discussion URL.
 - Use `--repo` with either `--pr` or `--comment` when a URL is not available.
+- Use `--hostname` for GitHub Enterprise Server. Defaults to `github.com`.
