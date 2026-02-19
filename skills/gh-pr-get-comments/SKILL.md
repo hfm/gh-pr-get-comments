@@ -31,3 +31,4 @@ gh pr-get-comments --repo owner/repo --comment 456789
 
 - Prefer `--url` when the user provides a discussion URL.
 - Use `--repo` with either `--pr` or `--comment` when a URL is not available.
+- Use `--hostname` for GitHub Enterprise Server. Defaults to `github.com`.
