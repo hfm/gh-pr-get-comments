@@ -40,12 +40,14 @@ pub fn parse_github_pr_url(raw: &str) -> anyhow::Result<ParsedUrl> {
 }
 
 fn parse_comment_fragment(fragment: &str) -> anyhow::Result<u64> {
-    match fragment.strip_prefix("discussion_r") {
-        Some(rest) => match rest.parse::<u64>() {
-            Ok(id) => Ok(id),
-            Err(_) => anyhow::bail!("Failed to parse comment ID: #{}", fragment),
-        },
-        None => anyhow::bail!("Invalid comment ID fragment: #{}", fragment),
+    let rest = fragment
+        .strip_prefix("discussion_r")
+        .or_else(|| fragment.strip_prefix('r'))
+        .ok_or_else(|| anyhow::anyhow!("Invalid comment ID fragment: #{}", fragment))?;
+
+    match rest.parse::<u64>() {
+        Ok(id) => Ok(id),
+        Err(_) => anyhow::bail!("Failed to parse comment ID: #{}", fragment),
     }
 }
 
@@ -79,5 +81,15 @@ mod tests {
             parse_github_pr_url("https://ghe.example.com/owner/repo/pull/42#discussion_r9")
                 .unwrap();
         assert_eq!(parsed.hostname, "ghe.example.com");
+    }
+
+    #[test]
+    fn parses_files_tab_comment_fragment() {
+        let parsed =
+            parse_github_pr_url("https://ghe.example.com/owner/repo/pull/42/files#r9").unwrap();
+        assert_eq!(parsed.hostname, "ghe.example.com");
+        assert_eq!(parsed.repo, "owner/repo");
+        assert_eq!(parsed.pr_number, 42);
+        assert_eq!(parsed.comment_id, Some(9));
     }
 }
